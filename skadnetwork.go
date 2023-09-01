@@ -17,7 +17,7 @@ import (
 )
 
 // Combine the values into a UTF-8 string with an invisible separator ('\u2063') between them.
-// Version: 1.0, 2.0, 2.1, 2.2, 3.0
+// Version: 1.0, 2.0, 2.1, 2.2, 3.0, 4.0
 const separator = string('\u2063')
 
 // Apple's public keys for postback:
@@ -110,7 +110,10 @@ type Postback struct {
 	// Version 1.0 and later.
 	// The campaign ID you provided when displaying the ad,
 	// that matches SKStoreProductParameterAdNetworkCampaignIdentifier or adCampaignIdentifier.
-	CampaignID int `json:"campaign-id"`
+	CampaignID int `json:"campaign-id,omitempty"`
+	// Version 4.0 and later.
+	// Replace the campaign-id
+	SourceIdentifier string `json:"source-identifier,omitempty"`
 	// Version 1.0 and later.
 	// The item identifier of the advertised product.
 	AppID int64 `json:"app-id"`
@@ -127,6 +130,8 @@ type Postback struct {
 	// and not an app from App Store, use 0 as the item identifier.
 	// Note: The source-app-id only appears in the postback if providing the parameter meets Apple’s privacy threshold.
 	SourceAppID *int64 `json:"source-app-id,omitempty"`
+	// Version 4.0 and later.
+	SourceDomain *string `json:"source-domain,omitempty"`
 	// Version 2.2 and later.
 	// A value of 0 indicates a view-through ad presentation; a value of 1 indicates a StoreKit-rendered ad.
 	FidelityType *FidelityType `json:"fidelity-type,omitempty"`
@@ -135,10 +140,14 @@ type Postback struct {
 	// Note: The conversion-value only appears in the postback if the installed app provides it,
 	// and if providing the parameter meets Apple’s privacy threshold.
 	ConversionValue *uint8 `json:"conversion-value,omitempty"`
+	// Version 4.0 and later.
+	CoarseConversionValue *string `json:"coarse-conversion-value,omitempty"`
 	// Version 3.0 and later.
 	// A Boolean value that’s true if the ad network won the attribution,
 	// and false if the postback represents a qualifying ad impression that didn’t win the attribution.
 	DidWin *bool `json:"did-win,omitempty"`
+	// Version 4.0 and later,
+	PostbackSequenceIndex *int64 `json:"postback-sequence-index,omitempty"`
 }
 
 // For 2.1:
@@ -151,6 +160,30 @@ type Postback struct {
 // https://developer.apple.com/documentation/storekit/skadnetwork/verifying_an_install-validation_postback#2960703
 func (p Postback) toItems() []string {
 	ret := make([]string, 0, 9)
+
+	if p.Version == "4.0" {
+		ret = append(ret,
+			p.Version,
+			p.AdNetworkID,
+			p.SourceIdentifier,
+			strconv.FormatInt(p.AppID, 10),
+			p.TransactionID,
+			strconv.FormatBool(*p.Redownload),
+		)
+
+		if p.SourceAppID != nil {
+			ret = append(ret, strconv.FormatInt(*p.SourceAppID, 10))
+		} else if p.SourceDomain != nil {
+			ret = append(ret, *p.SourceDomain)
+		}
+		ret = append(ret,
+			p.FidelityType.String(),
+			strconv.FormatBool(*p.DidWin),
+			strconv.FormatInt(*p.PostbackSequenceIndex, 10),
+		)
+		return ret
+	}
+
 	ret = append(ret,
 		p.Version,
 		p.AdNetworkID,
@@ -173,7 +206,7 @@ func (p Postback) toItems() []string {
 
 func (p Postback) verify() (bool, error) {
 	switch p.Version {
-	case "2.1", "2.2", "3.0":
+	case "2.1", "2.2", "3.0", "4.0":
 		return verify(pubV3, p.toItems(), p.AttributionSignature)
 	default:
 		return false, fmt.Errorf("skadnetwork: unsupported version error: %s", p.Version)

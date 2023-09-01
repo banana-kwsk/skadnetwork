@@ -1,4 +1,4 @@
-module github.com/mechiru/skadnetwork
+module github.com/banana-kwsk/skadnetwork
 
 go 1.18
 

@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/mechiru/skadnetwork"
+	"github.com/banana-kwsk/skadnetwork"
 )
 
 const (
@@ -58,6 +58,36 @@ MgSZN35Bv8gyUXt7xOK+hP8tDoOD2ir7bw==
   "redownload": true,
   "fidelity-type": 1,
   "did-win": false
+}`
+
+	v4_0__fine = `{
+  "version": "4.0",
+  "ad-network-id": "com.example",
+  "source-identifier": "5239",
+  "app-id": 525463029,
+  "transaction-id": "6aafb7a5-0170-41b5-bbe4-fe71dedf1e30",
+  "redownload": false,
+  "source-domain": "example.com",
+  "fidelity-type": 1,
+  "did-win": true,
+  "conversion-value": 63,
+  "postback-sequence-index": 0,
+  "attribution-signature": "MEUCIGRmSMrqedNu6uaHyhVcifs118R5z/AB6cvRaKrRRHWRAiEAv96ne3dKQ5kJpbsfk4eYiePmrZUU6sQmo+7zfP/1Bxo="
+}`
+	
+	v4_0__coarse = `{
+  "version": "4.0",
+  "ad-network-id": "com.example",
+  "source-identifier": "39",
+  "app-id": 525463029,
+  "transaction-id": "6aafb7a5-0170-41b5-bbe4-fe71dedf1e31",
+  "redownload": false,
+  "source-domain": "example.com", 
+  "fidelity-type": 1, 
+  "did-win": true,
+  "coarse-conversion-value": "high",
+  "postback-sequence-index": 0,
+  "attribution-signature": "MEUCIQD4rX6eh38qEhuUKHdap345UbmlzA7KEZ1bhWZuYM8MJwIgMnyiiZe6heabDkGwOaKBYrUXQhKtF3P/ERHqkR/XpuA="
 }`
 )
 
@@ -165,6 +195,40 @@ func TestMarshalJSON(t *testing.T) {
 				DidWin:               ref(false),
 			},
 		},
+		{
+			v4_0__fine,
+			&skadnetwork.Postback{
+				Version:              "4.0",
+				AdNetworkID:          "com.example",
+				SourceIdentifier:		"5239",
+				AppID:                525463029,
+				TransactionID:        "6aafb7a5-0170-41b5-bbe4-fe71dedf1e30",
+				Redownload:           ref(false),
+				SourceDomain:	ref[string]("example.com"),
+				FidelityType:         ref(skadnetwork.SKRenderedAds),
+				DidWin:               ref(true),
+				ConversionValue:	ref[uint8](63),
+				PostbackSequenceIndex: ref[int64](0),
+				AttributionSignature: "MEUCIGRmSMrqedNu6uaHyhVcifs118R5z/AB6cvRaKrRRHWRAiEAv96ne3dKQ5kJpbsfk4eYiePmrZUU6sQmo+7zfP/1Bxo=",
+			},
+		},
+		{
+			v4_0__coarse,
+			&skadnetwork.Postback{
+				Version:              "4.0",
+				AdNetworkID:          "com.example",
+				SourceIdentifier:		"39",
+				AppID:                525463029,
+				TransactionID:        "6aafb7a5-0170-41b5-bbe4-fe71dedf1e31",
+				Redownload:           ref(false),
+				SourceDomain:	ref[string]("example.com"),
+				FidelityType:         ref(skadnetwork.SKRenderedAds),
+				DidWin:               ref(true),
+				CoarseConversionValue:	ref[string]("high"),
+				PostbackSequenceIndex: ref[int64](0),
+				AttributionSignature: "MEUCIQD4rX6eh38qEhuUKHdap345UbmlzA7KEZ1bhWZuYM8MJwIgMnyiiZe6heabDkGwOaKBYrUXQhKtF3P/ERHqkR/XpuA=",
+			},
+		},
 	} {
 		var got skadnetwork.Postback
 		err := json.Unmarshal([]byte(c.in), &got)
@@ -185,6 +249,8 @@ func TestVerifyPostback(t *testing.T) {
 		{v2_2, true},
 		{v3_0__win, true},
 		{v3_0__lose, true},
+		{v4_0__fine, true},
+		{v4_0__coarse, true},
 	} {
 		var p skadnetwork.Postback
 		err := json.Unmarshal([]byte(c.in), &p)
