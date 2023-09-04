@@ -158,48 +158,45 @@ type Postback struct {
 //
 // For 3.0:
 // https://developer.apple.com/documentation/storekit/skadnetwork/verifying_an_install-validation_postback#2960703
+//
+// For 4.0:
+// https://developer.apple.com/documentation/storekit/skadnetwork/verifying_an_install-validation_postback
 func (p Postback) toItems() []string {
 	ret := make([]string, 0, 9)
-
-	if p.Version == "4.0" {
-		ret = append(ret,
-			p.Version,
-			p.AdNetworkID,
-			p.SourceIdentifier,
-			strconv.FormatInt(p.AppID, 10),
-			p.TransactionID,
-			strconv.FormatBool(*p.Redownload),
-		)
-
-		if p.SourceAppID != nil {
-			ret = append(ret, strconv.FormatInt(*p.SourceAppID, 10))
-		} else if p.SourceDomain != nil {
-			ret = append(ret, *p.SourceDomain)
-		}
-		ret = append(ret,
-			p.FidelityType.String(),
-			strconv.FormatBool(*p.DidWin),
-			strconv.FormatInt(*p.PostbackSequenceIndex, 10),
-		)
-		return ret
-	}
-
 	ret = append(ret,
 		p.Version,
 		p.AdNetworkID,
-		strconv.Itoa(p.CampaignID),
+	)
+	if p.Version == "4.0" {
+		ret = append(ret,
+			p.SourceIdentifier,
+		)
+	} else {
+		ret = append(ret,
+			strconv.Itoa(p.CampaignID),
+		)
+	}
+	ret = append(ret,
 		strconv.FormatInt(p.AppID, 10),
 		p.TransactionID,
 		strconv.FormatBool(*p.Redownload),
 	)
 	if p.SourceAppID != nil {
 		ret = append(ret, strconv.FormatInt(*p.SourceAppID, 10))
+	} else if p.Version == "4.0" && p.SourceDomain != nil {
+		ret = append(ret, *p.SourceDomain)
 	}
 	switch p.Version {
 	case "2.2":
 		ret = append(ret, p.FidelityType.String())
 	case "3.0":
 		ret = append(ret, p.FidelityType.String(), strconv.FormatBool(*p.DidWin))
+	case "4.0":
+		ret = append(ret,
+			p.FidelityType.String(),
+			strconv.FormatBool(*p.DidWin),
+			strconv.FormatInt(*p.PostbackSequenceIndex, 10),
+		)
 	}
 	return ret
 }
