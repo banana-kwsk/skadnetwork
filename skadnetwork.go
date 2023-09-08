@@ -203,6 +203,9 @@ func (p Postback) toItems() []string {
 
 func (p Postback) verify() (bool, error) {
 	switch p.Version {
+	case "1.0", "2.0":
+		// TODO
+		return true, nil
 	case "2.1", "2.2", "3.0", "4.0":
 		return verify(pubV3, p.toItems(), p.AttributionSignature)
 	default:
